@@ -1,0 +1,36 @@
+{
+  "name": "hoverboard",
+  "version": "0.0.1",
+  "homepage": "https://github.com/summer4096/hoverboard",
+  "authors": [
+    "Summer Davies <github@summer.dev>"
+  ],
+  "description": "Render vector tiles on canvas with leaflet. Supports geojson, topojson, and mapbox vector tiles (protobuf)",
+  "main": "src/hoverboard.js",
+  "moduleType": [
+    "amd",
+    "globals",
+    "node"
+  ],
+  "keywords": [
+    "leaflet",
+    "vector",
+    "geojson",
+    "topojson",
+    "protobuf"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+  ],
+  "dependencies": {
+    "d3": "~3.4.13",
+    "hidpi-canvas": "~1.0.9",
+    "leaflet": "~0.7.3",
+    "pbf": "~0.0.3",
+    "topojson": "~1.6.18",
+    "vector-tile": "~0.1.1"
+  }
+}
