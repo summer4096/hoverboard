@@ -148,11 +148,20 @@ module.exports = function(url, options){
         throw err;
       }
 
-      var result = mode.parse(xhr.response, canvas);
+      var result = mode.parse(xhr.response, tilePoint);
 
       var path = d3.geo.path()
         .projection(result.projection)
         .context(context);
+
+      var width = canvas.width, height=canvas.height;
+
+      if (options.hidpiPolyfill) {
+        width *= (1/window.devicePixelRatio);
+        width *= (1/window.devicePixelRatio);
+      }
+
+      context.clearRect(0, 0, width, height);
 
       if (renderers.length) {
         renderers.forEach(function(renderer){
