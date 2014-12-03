@@ -57,6 +57,7 @@ RenderingInterface.prototype.strokeBy = function(property, strokes, fallback){
 };
 
 RenderingInterface.prototype._where = function(options){
+  console.log('where', options);
   var field = options.field;
   var value = options.value;
 
@@ -64,14 +65,15 @@ RenderingInterface.prototype._where = function(options){
     if (typeof field == 'string') {
       this.where(function(d){
         return d.properties[field] ? true : false;
-      });
+      }, undefined, options.invert);
     } else if (typeof field == 'object') {
       for (var key in field) {
-        this.where(key, field[key]);
+        this.where(key, field[key], options.invert);
       }
     } else if (typeof field == 'function') {
       if (options.invert) {
         var oldField = field;
+        console.log('inverting');
         field = function(){
           return !oldField.apply(null, arguments);
         };
@@ -83,21 +85,22 @@ RenderingInterface.prototype._where = function(options){
   } else if (typeof value == 'string' || typeof value == 'number'){
     this.where(function(d){
       return d.properties[field] == value;
-    });
+    }, undefined, options.invert);
   } else if (typeof value == 'object' && Array.isArray(value)) {
     this.where(function(d){
       return value.indexOf(d.properties[field]) != -1;
-    });
+    }, undefined, options.invert);
   } else {
     throw new Error('RenderingInterface.where(field, value) cannot be called with field as type '+(typeof field)+' and value as type '+(typeof value));
   }
   return this;
 };
 
-RenderingInterface.prototype.where = function(field, value){
-  return this._where({field: field, value: value});
+RenderingInterface.prototype.where = function(field, value, invert){
+  return this._where({field: field, value: value, invert: invert});
 }
 RenderingInterface.prototype.whereNot = function(field, value){
+  console.log('whereNot', field, value);
   return this._where({field: field, value: value, invert: true});
 }
 
