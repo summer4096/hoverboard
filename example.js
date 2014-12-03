@@ -7,7 +7,7 @@ var map = L.map('map', {
 //L.tileLayer('http://{s}.tile.stamen.com/terrain-background/{z}/{x}/{y}.jpg').addTo(map);
 
 //var url = 'http://{s}.tile.openstreetmap.us/vectiles-highroad/{z}/{x}/{y}.topojson';
-var url = 'https://{s}.tiles.mapbox.com/v4/mapbox.mapbox-streets-v6-dev,mapbox.mapbox-terrain-v1/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6IlhHVkZmaW8ifQ.hAMX5hSW-QnTeRCMAy9A8Q';
+var url = 'https://{s}.tiles.mapbox.com/v4/mapbox.mapbox-streets-v5,mapbox.mapbox-terrain-v1/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiZmFyYWRheTIiLCJhIjoiTUVHbDl5OCJ9.buFaqIdaIM3iXr1BOYKpsQ';
 
 var colors = {
   land: '#FCFBE7',
@@ -26,9 +26,8 @@ var colors = {
   commercial: '#FCFBE7',
   industrial: '#FCFBE7',
   parking: '#EEE',
-
-  big_road: '#d28585',
-  little_road: '#bbb'
+  big_road: '#853A6C',
+  little_road: '#853A6C'
 };
 
 L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
@@ -59,8 +58,8 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
 
   .render('hillshade')
     .fillBy('class', {
-      medium_shadow:    'rgba(100, 50, 150,  0.2)',
-      full_shadow:      'rgba(100, 50, 150,  0.3)',
+      medium_shadow:    'rgba(10, 50, 150,  0.2)',
+      full_shadow:      'rgba(10, 50, 150,  0.3)',
       medium_highlight: 'rgba(255, 255, 150, 0.2)',
       full_highlight:   'rgba(255, 255, 150, 0.3)'
     })
@@ -70,16 +69,17 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
 
   .render('road')
     .where('type', ['motorway', 'trunk'])
-    .stroke(3.5, 'rgba(0, 0, 0, 0.5)')
-    .stroke(3, colors.big_road)
+    .stroke(3.5, 'rgba(2555, 255, 255, 0.5)')
+    .stroke(2.5, colors.big_road)
 
   .render('road')
     .whereNot('type', ['motorway', 'trunk'])
-    .stroke(2, 'rgba(0, 0, 0, 0.5)')
+    .stroke(3, 'rgba(255, 255, 255, 0.5)')
     .stroke(1.5, colors.little_road)
 
   .render('building')
-    .fill('#aaa')
+    .fill('#f0f0f0')
+    .stroke(0.5, 'rgba(0,0,0,0.4)')
 
   .render('water')
     .fill(colors.water)
@@ -88,3 +88,5 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
     .stroke(1, colors.water)
 
   .addTo(map);
+
+var hash = L.hash(map);
