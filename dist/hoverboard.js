@@ -149,7 +149,7 @@ module.exports = function(url, options){
         throw err;
       }
 
-      var result = mode.parse(xhr.response, tilePoint);
+      var result = mode.parse(xhr.response, canvas);
 
       var path = d3.geo.path()
         .projection(result.projection)
