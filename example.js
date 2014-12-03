@@ -28,7 +28,7 @@ var colors = {
   parking: '#EEE',
 
   big_road: '#d28585',
-  little_road: '#bbb'
+  little_road: '#f0f0f0'
 };
 
 L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
@@ -69,17 +69,18 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
     .stroke(0.5, 'rgba(0, 0, 0, 0.2)')
 
   .render('road')
-    .where('type', ['motorway', 'trunk'])
-    .stroke(3.5, 'rgba(0, 0, 0, 0.5)')
-    .stroke(3, colors.big_road)
+    .whereNot('type', ['motorway', 'trunk', 'main'])
+    .stroke(2.5, 'rgba(0,0,0,0.5)')
+    .stroke(2, colors.little_road)
 
   .render('road')
-    .whereNot('type', ['motorway', 'trunk'])
-    .stroke(2, 'rgba(0, 0, 0, 0.5)')
-    .stroke(1.5, colors.little_road)
+    .where('type', ['motorway', 'trunk', 'main'])
+    .stroke(4.5, 'rgba(0,0,0,0.5)')
+    .stroke(4, colors.big_road)
 
   .render('building')
-    .fill('#aaa')
+    .fill('#f0f0f0')
+    .stroke(0.5, 'rgba(0,0,0,0.4)')
 
   .render('water')
     .fill(colors.water)
