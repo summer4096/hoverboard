@@ -2,7 +2,7 @@
 
 Render vector tiles on canvas with leaflet. 
 
-![example](eg.png)
+![O little town of Grenoble](grenoble.png)
 
 [Try it out](https://summer4096.github.io/hoverboard/)
 
