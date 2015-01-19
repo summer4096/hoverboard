@@ -8,7 +8,7 @@ module.exports = function(url, options){
 
   var projections = {};
   projections.WGS84 = function(offset){
-    offset = offset || {x: 0, y: 0};
+    tileOffset = offset || {x: 0, y: 0};
 
     return d3.geo.transform({
       point: function(y, x) {
