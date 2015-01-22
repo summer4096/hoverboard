@@ -8,7 +8,7 @@ module.exports = function(url, options){
 
   var projections = {};
   projections.WGS84 = function(offset){
-    offset = offset || {x: 0, y: 0};
+    var tileOffset = offset || {x: 0, y: 0};
 
     return d3.geo.transform({
       point: function(y, x) {
@@ -148,7 +148,7 @@ module.exports = function(url, options){
         throw err;
       }
 
-      var result = mode.parse(xhr.response, tilePoint);
+      var result = mode.parse(xhr.response||xhr, tilePoint);
 
       var path = d3.geo.path()
         .projection(result.projection)
