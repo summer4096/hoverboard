@@ -139,6 +139,15 @@ module.exports = function(url, options){
   layer.drawTile = function(canvas, tilePoint, zoom) {
     var context = canvas.getContext('2d');
     tilePoint = {x: tilePoint.x, y: tilePoint.y, z: zoom};
+    var tilesLong = Math.pow(2, tilePoint.z);
+    tilePoint.x %= tilesLong;
+    tilePoint.y %= tilesLong;
+    if (tilePoint.x < 0) {
+      tilePoint.x += tilesLong;
+    }
+    if (tilePoint.y < 0) {
+      tilePoint.y += tilesLong;
+    }
 
     var mode;
     if (modeOption == 'auto') {
