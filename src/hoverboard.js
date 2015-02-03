@@ -1,5 +1,35 @@
 var RenderingInterface = require('./renderingInterface');
 
+function transformer(tilePoint, size){
+  size = size || 256;
+
+  var tilesLong = Math.pow(2, tilePoint.z);
+  var sideLength = 40075016.68557849;
+  var pixelsPerTile = sideLength / tilesLong;
+
+  var x = tilePoint.x % tilesLong;
+  var y = tilePoint.y % tilesLong;
+
+  var tilePosition = {
+    top: (sideLength/2) - (y / tilesLong * sideLength),
+    left: -(sideLength/2) + (x / tilesLong * sideLength)
+  };
+
+  tilePosition.bottom = tilePosition.top-pixelsPerTile;
+  tilePosition.right = tilePosition.left+pixelsPerTile;
+
+  return d3.geo.transform({
+    point: function(lng, lat) {
+      var point = L.CRS.EPSG3857.project({lat: lat, lng: lng});
+      point.x = (point.x - tilePosition.left)/sideLength;
+      point.y = (point.y - tilePosition.top)/sideLength;
+      point.x *= size;
+      point.y *= size;
+      this.stream.point(point.x, point.y);
+    }
+  });
+}
+
 module.exports = function(url, options){
   options = options || {};
   options.async = true;
@@ -7,15 +37,12 @@ module.exports = function(url, options){
   layer.setUrl(url);
 
   var projections = {};
-  projections.WGS84 = function(offset){
-    var tileOffset = offset || {x: 0, y: 0};
-
-    return d3.geo.transform({
-      point: function(y, x) {
-        var point = layer._map.latLngToLayerPoint(new L.LatLng(x, y));
-        this.stream.point(point.x-tileOffset.x, point.y-tileOffset.y);
-      }
-    });
+  projections.WGS84 = function(tilePoint, size){
+    size = size || 256;
+    if (options.hidpiPolyfill) {
+      size *= (1/window.devicePixelRatio);
+    }
+    return transformer(tilePoint, size);
   };
 
   var modes = {};
@@ -25,15 +52,10 @@ module.exports = function(url, options){
       var xhr = d3.json(url, callback);
       return xhr.abort.bind(xhr);
     },
-    parse: function(data, canvas){
-      var tileOffset = {
-        x: parseInt(d3.select(canvas).style('left').slice(0, -2)),
-        y: parseInt(d3.select(canvas).style('top').slice(0, -2))
-      };
-
+    parse: function(data, tilePoint){
       return {
         data: {layer: data},
-        projection: projections.WGS84(tileOffset)
+        projection: projections.WGS84(tilePoint)
       }
     }
   };
@@ -43,12 +65,7 @@ module.exports = function(url, options){
       var xhr = d3.json(url, callback);
       return xhr.abort.bind(xhr);
     },
-    parse: function(data, canvas){
-      var tileOffset = {
-        x: parseInt(d3.select(canvas).style('left').slice(0, -2)),
-        y: parseInt(d3.select(canvas).style('top').slice(0, -2))
-      };
-
+    parse: function(data, tilePoint){
       var layers = {};
       for (var key in data.objects) {
         layers[key] = topojson.feature(data, data.objects[key]);
@@ -56,7 +73,7 @@ module.exports = function(url, options){
 
       return {
         data: layers,
-        projection: projections.WGS84(tileOffset)
+        projection: projections.WGS84(tilePoint)
       }
     }
   };
@@ -66,7 +83,7 @@ module.exports = function(url, options){
       var xhr = d3.xhr(url).responseType('arraybuffer').get(callback);
       return xhr.abort.bind(xhr);
     },
-    parse: function(data, canvas){
+    parse: function(data, tilePoint){
       var tile = new VectorTile( new pbf( new Uint8Array(data) ) );
 
       var layers = {};
@@ -75,23 +92,21 @@ module.exports = function(url, options){
         layers[key] = tile.layers[key].toGeoJSON();
       }
 
-      //console.log(layers);
+      var projection = d3.geo.transform({
+        point: function(x, y) {
+          x = x/tile.layers[layer.__currentLayer].extent*256;
+          y = y/tile.layers[layer.__currentLayer].extent*256;
+
+          this.stream.point(x, y);
+        }
+      });
+
+      var clip = d3.geo.clipExtent()
+        .extent([[-8, -8], [256+8, 256+8]]);
 
       return {
         data: layers,
-        projection: d3.geo.transform({
-          point: function(x, y) {
-            x = x/tile.layers[layer.__currentLayer].extent*canvas.width;
-            y = y/tile.layers[layer.__currentLayer].extent*canvas.height;
-
-            if (options.hidpiPolyfill) {
-              x *= (1/window.devicePixelRatio);
-              y *= (1/window.devicePixelRatio);
-            }
-
-            this.stream.point(x, y);
-          }
-        })
+        projection: {stream: function(s) { return projection.stream(clip.stream(s)); }}
       };
     }
   };
@@ -148,17 +163,17 @@ module.exports = function(url, options){
         throw err;
       }
 
-      var result = mode.parse(xhr.response||xhr, tilePoint);
+      var result = mode.parse(xhr.response || xhr, tilePoint);
 
       var path = d3.geo.path()
         .projection(result.projection)
         .context(context);
 
-      var width = canvas.width, height=canvas.height;
+      var width = canvas.width, height = canvas.height;
 
       if (options.hidpiPolyfill) {
         width *= (1/window.devicePixelRatio);
-        width *= (1/window.devicePixelRatio);
+        height *= (1/window.devicePixelRatio);
       }
 
       context.clearRect(0, 0, width, height);

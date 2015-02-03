@@ -6,8 +6,8 @@ var map = L.map('map', {
 
 //L.tileLayer('http://{s}.tile.stamen.com/terrain-background/{z}/{x}/{y}.jpg').addTo(map);
 
-//var url = 'http://{s}.tile.openstreetmap.us/vectiles-highroad/{z}/{x}/{y}.topojson';
-var url = 'https://{s}.tiles.mapbox.com/v4/mapbox.mapbox-streets-v5,mapbox.mapbox-terrain-v2/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiZmFyYWRheTIiLCJhIjoiTUVHbDl5OCJ9.buFaqIdaIM3iXr1BOYKpsQ';
+var url = 'http://{s}.tile.openstreetmap.us/vectiles-highroad/{z}/{x}/{y}.topojson';
+//var url = 'https://{s}.tiles.mapbox.com/v4/mapbox.mapbox-streets-v5,mapbox.mapbox-terrain-v2/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiZmFyYWRheTIiLCJhIjoiTUVHbDl5OCJ9.buFaqIdaIM3iXr1BOYKpsQ';
 
 var colors = {
   land: '#FCFBE7',
@@ -31,7 +31,7 @@ var colors = {
 };
 
 L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
-
+/*
   .render('landuse')
     .minZoom(12)
     .fillBy('class', {
@@ -74,7 +74,7 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
       10: '#000',
       20: '#111'
       etc . . .
-    })*/
+    })
 
   .render('road')
     .where('type', ['motorway', 'trunk'])
@@ -94,7 +94,7 @@ L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
     .fill(colors.water)
 
   .render('waterway')
-    .stroke(1, colors.water)
+    .stroke(1, colors.water)*/
 
   .addTo(map);
 
