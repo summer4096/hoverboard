@@ -273,7 +273,6 @@ RenderingInterface.prototype.strokeBy = function(property, strokes, fallback){
 };
 
 RenderingInterface.prototype._where = function(options){
-  console.log('where', options);
   var field = options.field;
   var value = options.value;
 
@@ -289,7 +288,6 @@ RenderingInterface.prototype._where = function(options){
     } else if (typeof field == 'function') {
       if (options.invert) {
         var oldField = field;
-        console.log('inverting');
         field = function(){
           return !oldField.apply(null, arguments);
         };
@@ -316,7 +314,6 @@ RenderingInterface.prototype.where = function(field, value, invert){
   return this._where({field: field, value: value, invert: invert});
 }
 RenderingInterface.prototype.whereNot = function(field, value){
-  console.log('whereNot', field, value);
   return this._where({field: field, value: value, invert: true});
 }
 
