@@ -9,3 +9,8 @@ html, body {
   height: 100%;
   background: #bcd9bf;
 }
+
+.leaflet-tile-container:first-child {
+  /* This prevents reference labels from being drawn twice at the same time, which is bad */
+  display: none;
+}
