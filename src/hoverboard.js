@@ -1,214 +1,214 @@
 var RenderingInterface = require('./renderingInterface');
 
-function transformer(tilePoint, size){
-  size = size || 256;
+module.exports = L.TileLayer.Canvas.extend({
+  options: {
+    async: true
+  },
+  initialize: function(url, options){
+    L.TileLayer.Canvas.prototype.initialize.call(this, options);
 
-  var tilesLong = Math.pow(2, tilePoint.z);
-  var sideLength = 40075016.68557849;
-  var pixelsPerTile = sideLength / tilesLong;
+    this._tileCache = {};
+    this._renderers = [];
 
-  var x = tilePoint.x % tilesLong;
-  var y = tilePoint.y % tilesLong;
+    this.setUrl(url);
 
-  var tilePosition = {
-    top: (sideLength/2) - (y / tilesLong * sideLength),
-    left: -(sideLength/2) + (x / tilesLong * sideLength)
-  };
+    this.on("tileunload", function(d){
+      if (d.tile.abort) d.tile.abort();
+      d.tile.abort = null;
+    });
+  },
+  projector: function(tilePoint, layer){
+    var tilesLong = Math.pow(2, tilePoint.z);
+    var sideLength = 40075016.68557849;
+    var pixelsPerTile = sideLength / tilesLong;
 
-  tilePosition.bottom = tilePosition.top-pixelsPerTile;
-  tilePosition.right = tilePosition.left+pixelsPerTile;
+    var x = tilePoint.x % tilesLong;
+    var y = tilePoint.y % tilesLong;
 
-  return d3.geo.transform({
-    point: function(lng, lat) {
-      var point = L.CRS.EPSG3857.project({lat: lat, lng: lng});
-      point.x = (point.x - tilePosition.left)/sideLength;
-      point.y = (point.y - tilePosition.top)/sideLength;
-      point.x *= size;
-      point.y *= size;
-      this.stream.point(point.x, point.y);
-    }
-  });
-}
+    var tilePosition = {
+      top: (sideLength/2) - ((y+1) / tilesLong * sideLength),
+      left: -(sideLength/2) + (x / tilesLong * sideLength)
+    };
 
-module.exports = function(url, options){
-  options = options || {};
-  options.async = true;
-  var layer = L.tileLayer.canvas(options);
-  layer.setUrl(url);
+    tilePosition.bottom = tilePosition.top+pixelsPerTile;
+    tilePosition.right = tilePosition.left+pixelsPerTile;
 
-  var projections = {};
-  projections.WGS84 = function(tilePoint, size){
-    size = size || 256;
-    if (options.hidpiPolyfill) {
-      size *= (1/window.devicePixelRatio);
-    }
-    return transformer(tilePoint, size);
-  };
-
-  var modes = {};
-  modes.geojson = {
-    extensions: ['geojson', 'json'],
-    get: function(url, callback){
-      var xhr = d3.json(url, callback);
-      return xhr.abort.bind(xhr);
-    },
-    parse: function(data, tilePoint){
-      return {
-        data: {layer: data},
-        projection: projections.WGS84(tilePoint)
+    return d3.geo.transform({
+      point: function(lng, lat) {
+        var point = L.CRS.EPSG3857.project({lat: lat, lng: lng});
+        point.x = (point.x - tilePosition.left)/pixelsPerTile;
+        point.y = 1-((point.y - tilePosition.top)/pixelsPerTile);
+        point.x *= 256;
+        point.y *= 256;
+        this.stream.point(point.x, point.y);
       }
-    }
-  };
-  modes.topojson = {
-    extensions: ['topojson'],
-    get: function(url, callback){
-      var xhr = d3.json(url, callback);
-      return xhr.abort.bind(xhr);
-    },
-    parse: function(data, tilePoint){
-      var layers = {};
-      for (var key in data.objects) {
-        layers[key] = topojson.feature(data, data.objects[key]);
-      }
+    });
+  },
+  clippedProjector: function(tilePoint, layer){
+    var projector = this.projector(tilePoint, layer);
 
-      return {
-        data: layers,
-        projection: projections.WGS84(tilePoint)
-      }
-    }
-  };
-  modes.protobuf = {
-    extensions: ['mvt', 'pbf'],
-    get: function(url, callback){
-      var xhr = d3.xhr(url).responseType('arraybuffer').get(callback);
-      return xhr.abort.bind(xhr);
-    },
-    parse: function(data, tilePoint){
-      var tile = new VectorTile( new pbf( new Uint8Array(data) ) );
+    var clip = d3.geo.clipExtent()
+      .extent([[-8, -8], [256+8, 256+8]]);
 
-      var layers = {};
+    return {stream: function(s) { return projector.stream(clip.stream(s)); }};
+  },
+  _fetchTile: function(tilePoint, callback){
+    var cacheKey = this._url+'@@'+JSON.stringify(tilePoint);
 
-      for (var key in tile.layers) {
-        layers[key] = tile.layers[key].toGeoJSON();
-      }
-
-      var projection = d3.geo.transform({
-        point: function(x, y) {
-          x = x/tile.layers[layer.__currentLayer].extent*256;
-          y = y/tile.layers[layer.__currentLayer].extent*256;
-
-          this.stream.point(x, y);
+    if (typeof this._tileCache[cacheKey] != 'undefined') {
+      callback(null, this._tileCache[cacheKey]);
+      return function(){};
+    } else {
+      var self = this;
+      var url = this.getTileUrl(tilePoint);
+      return this.fetch(url, function(err, result){
+        if (!err) {
+          self._tileCache[cacheKey] = self.parse(result);
         }
+        callback(err, self._tileCache[cacheKey]);
       });
-
-      var clip = d3.geo.clipExtent()
-        .extent([[-8, -8], [256+8, 256+8]]);
-
-      return {
-        data: layers,
-        projection: {stream: function(s) { return projection.stream(clip.stream(s)); }}
-      };
     }
-  };
-
-  var modeOption = 'auto';
-  layer.mode = function(_mode, overrides){
-    modeOption = _mode;
-    return layer;
-  };
-
-  var renderers = [];
-  layer.render = function(layerName, fn){
+  },
+  render: function(layerName, fn){
     if (typeof fn == 'function') {
-      renderers.push({
+      this._renderers.push({
         layer: layerName,
         run: fn
       });
-      return layer;
+      return this;
     } else {
-      var renderer = new RenderingInterface(layer, layerName);
-      renderers.push({
+      var renderer = new RenderingInterface(this, layerName);
+      this._renderers.push({
         layer: layerName,
         run: renderer.run.bind(renderer)
       });
       return renderer;
     }
-  };
-
-  layer.drawTile = function(canvas, tilePoint, zoom) {
+  },
+  drawData: function(canvas, tilePoint, data, callback){
     var context = canvas.getContext('2d');
-    tilePoint = {x: tilePoint.x, y: tilePoint.y, z: zoom};
-    var tilesLong = Math.pow(2, tilePoint.z);
-    tilePoint.x %= tilesLong;
-    tilePoint.y %= tilesLong;
-    if (tilePoint.x < 0) {
-      tilePoint.x += tilesLong;
-    }
-    if (tilePoint.y < 0) {
-      tilePoint.y += tilesLong;
-    }
 
-    var mode;
-    if (modeOption == 'auto') {
-      var extension = layer._url.split('?')[0].split('.').pop();
-      for (var key in modes) {
-        if (modes[key].extensions.indexOf(extension) != -1) {
-          mode = modes[key];
-          break;
+    var width = canvas.width, height = canvas.height;
+    if (this.options.hidpiPolyfill) {
+      width *= (1/window.devicePixelRatio);
+      height *= (1/window.devicePixelRatio);
+    }
+    context.clearRect(0, 0, width, height);
+
+    var paths = {};
+
+    if (this._renderers.length) {
+      var self = this;
+      this._renderers.forEach(function(renderer){
+        if (!data[renderer.layer]) return;
+
+        if (typeof paths[renderer.layer] == 'undefined') {
+          paths[renderer.layer] = d3.geo.path()
+            .projection(self.clippedProjector(tilePoint, renderer.layer))
+            .context(context);
         }
-      }
-      if (!mode) {
-        throw new Error('I don\'t know what to do with URLs ending in .'+extension);
-      }
-    } else if (typeof modeOption == 'object') {
-      mode = modeOption;
-    } else {
-      mode = modes[modeOption];
-    }
 
-    var url = layer.getTileUrl(tilePoint);
-    mode.get(url, function(err, xhr){
+        renderer.run(context, data[renderer.layer].features, tilePoint, function(features){
+          if (typeof features == 'object' && !Array.isArray(features)) {
+            features = [features];
+          }
+
+          context.beginPath();
+          features.forEach(paths[renderer.layer]);
+        });
+      });
+      callback();
+    } else {
+      callback(new Error('No renderer specified!'));
+    }
+  },
+  drawTile: function(canvas, tilePoint, zoom){
+    this._adjustTilePoint(tilePoint);
+
+    var self = this;
+    canvas.abort = this._fetchTile(tilePoint, function(err, result){
       if (err) {
+        self.tileDrawn(canvas);
         throw err;
       }
 
-      var result = mode.parse(xhr.response || xhr, tilePoint);
-
-      var path = d3.geo.path()
-        .projection(result.projection)
-        .context(context);
-
-      var width = canvas.width, height = canvas.height;
-
-      if (options.hidpiPolyfill) {
-        width *= (1/window.devicePixelRatio);
-        height *= (1/window.devicePixelRatio);
-      }
-
-      context.clearRect(0, 0, width, height);
-
-      if (renderers.length) {
-        renderers.forEach(function(renderer){
-          if (!result.data[renderer.layer]) return;
-
-          layer.__currentLayer = renderer.layer;
-
-          renderer.run(context, result.data[renderer.layer].features, tilePoint, function(features){
-            if (typeof features == 'object' && !Array.isArray(features)) {
-              features = [features];
-            }
-
-            context.beginPath();
-            features.forEach(path);
-          });
-        });
-      } else {
-        throw new Error('No renderer specified!');
-      }
-
-      layer.tileDrawn(canvas);
+      self.drawData(canvas, tilePoint, result, function(err){
+        self.tileDrawn(canvas);
+        if (err) {
+          throw err;
+        }
+      });
     });
-  };
+  }
+});
 
-  return layer;
-};
+module.exports.json = module.exports.extend({
+  fetch: function(url, callback){
+    var xhr = d3.json(url, function(err, xhrResponse){
+      callback(err, xhrResponse.response || xhrResponse);
+    });
+
+    return xhr.abort.bind(xhr);
+  }
+});
+
+module.exports.geojson = module.exports.json.extend({
+  parse: function(data){
+    return {geojson: data};
+  }
+});
+
+module.exports.topojson = module.exports.json.extend({
+  parse: function(data){
+    var layers = {};
+
+    for (var key in data.objects) {
+      layers[key] = topojson.feature(data, data.objects[key]);
+    }
+
+    return layers;
+  }
+});
+
+module.exports.mvt = module.exports.extend({
+  fetch: function(url, callback){
+    var xhr = d3.xhr(url)
+      .responseType('arraybuffer')
+      .get(function(err, xhrResponse){
+        callback(err, xhrResponse.response || xhrResponse);
+      });
+
+    return xhr.abort.bind(xhr);
+  },
+  parse: function(data){
+    var tile = new VectorTile( new pbf( new Uint8Array(data) ) );
+
+    var layers = {};
+
+    if (typeof this.layerExtents == 'undefined') {
+      this.layerExtents = {};
+
+      for (var key in tile.layers) {
+        this.layerExtents[key] = tile.layers[key].extent;
+      }
+    }
+
+    for (var key in tile.layers) {
+      layers[key] = tile.layers[key].toGeoJSON();
+    }
+
+    return layers;
+  },
+  projector: function(tilePoint, layer){
+    var self = this;
+
+    return d3.geo.transform({
+      point: function(x, y) {
+        x = x/self.layerExtents[layer]*256;
+        y = y/self.layerExtents[layer]*256;
+
+        this.stream.point(x, y);
+      }
+    });
+  }
+});

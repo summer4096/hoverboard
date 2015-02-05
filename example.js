@@ -30,7 +30,7 @@ var colors = {
   little_road: '#853A6C'
 };
 
-L.tileLayer.hoverboard(url, {hidpiPolyfill: true})
+(new Hoverboard.mvt(url, {hidpiPolyfill: true}))
 
   .render('landuse')
     .minZoom(12)
