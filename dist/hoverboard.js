@@ -127,6 +127,8 @@ module.exports = L.TileLayer.Canvas.extend({
 
     this._adjustTilePoint(tilePoint);
 
+    var animationFrame;
+
     var self = this;
     canvas.abort = this._fetchTile(tilePoint, function(err, result){
       if (err) {
@@ -136,15 +138,14 @@ module.exports = L.TileLayer.Canvas.extend({
 
       var offScreenCanvas = document.createElement('canvas');
 
-      var animationFrame;
-
-      self.drawData(offScreenCanvas, tilePoint, result, function(err){
+      self.drawData(offScreenCanvas, canvas, tilePoint, result, function(){
+        //skip rendering (empty tile)
+        self.tileDrawn(canvas);
+      }, function(err){
         animationFrame && window.cancelAnimationFrame(animationFrame);
         animationFrame = window.requestAnimationFrame(function(){
           canvas.width = offScreenCanvas.width;
           canvas.height = offScreenCanvas.height;
-          canvas.style.width = offScreenCanvas.style.width;
-          canvas.style.height = offScreenCanvas.style.height;
           canvas.getContext('2d').drawImage(offScreenCanvas, 0, 0);
           self.tileDrawn(canvas);
         });
