@@ -18,7 +18,7 @@ module.exports = L.TileLayer.Canvas.extend({
       d.tile.abort = null;
     });
   },
-  projector: function(tilePoint, layer){
+  projector: function(tilePoint, layer, canvasSize){
     var tilesLong = Math.pow(2, tilePoint.z);
     var sideLength = 40075016.68557849;
     var pixelsPerTile = sideLength / tilesLong;
@@ -39,17 +39,17 @@ module.exports = L.TileLayer.Canvas.extend({
         var point = L.CRS.EPSG3857.project({lat: lat, lng: lng});
         point.x = (point.x - tilePosition.left)/pixelsPerTile;
         point.y = 1-((point.y - tilePosition.top)/pixelsPerTile);
-        point.x *= 256;
-        point.y *= 256;
+        point.x *= canvasSize;
+        point.y *= canvasSize;
         this.stream.point(point.x, point.y);
       }
     });
   },
-  clippedProjector: function(tilePoint, layer){
-    var projector = this.projector(tilePoint, layer);
+  clippedProjector: function(tilePoint, layer, canvasSize){
+    var projector = this.projector(tilePoint, layer, canvasSize);
 
     var clip = d3.geo.clipExtent()
-      .extent([[-8, -8], [256+8, 256+8]]);
+      .extent([[-8, -8], [canvasSize+8, canvasSize+8]]);
 
     return {stream: function(s) { return projector.stream(clip.stream(s)); }};
   },
@@ -89,12 +89,8 @@ module.exports = L.TileLayer.Canvas.extend({
   drawData: function(canvas, tilePoint, data, callback){
     var context = canvas.getContext('2d');
 
-    var width = canvas.width, height = canvas.height;
-    if (this.options.hidpiPolyfill) {
-      width *= (1/window.devicePixelRatio);
-      height *= (1/window.devicePixelRatio);
-    }
-    context.clearRect(0, 0, width, height);
+    var canvasSize = canvas.width;
+    context.clearRect(0, 0, canvasSize, canvasSize);
 
     var paths = {};
 
@@ -105,7 +101,7 @@ module.exports = L.TileLayer.Canvas.extend({
 
         if (typeof paths[renderer.layer] == 'undefined') {
           paths[renderer.layer] = d3.geo.path()
-            .projection(self.clippedProjector(tilePoint, renderer.layer))
+            .projection(self.clippedProjector(tilePoint, renderer.layer, canvasSize))
             .context(context);
         }
 
@@ -124,6 +120,11 @@ module.exports = L.TileLayer.Canvas.extend({
     }
   },
   drawTile: function(canvas, tilePoint, zoom){
+    if (typeof this._url == 'undefined') {
+      this.tileDrawn(canvas);
+      return;
+    }
+
     this._adjustTilePoint(tilePoint);
 
     var self = this;
@@ -200,13 +201,13 @@ module.exports.mvt = module.exports.extend({
 
     return layers;
   },
-  projector: function(tilePoint, layer){
+  projector: function(tilePoint, layer, canvasSize){
     var self = this;
 
     return d3.geo.transform({
       point: function(x, y) {
-        x = x/self.layerExtents[layer]*256;
-        y = y/self.layerExtents[layer]*256;
+        x = x/self.layerExtents[layer]*canvasSize;
+        y = y/self.layerExtents[layer]*canvasSize;
 
         this.stream.point(x, y);
       }
