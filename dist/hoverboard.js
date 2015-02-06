@@ -136,15 +136,18 @@ module.exports = L.TileLayer.Canvas.extend({
 
       var offScreenCanvas = document.createElement('canvas');
 
+      var animationFrame;
+
       self.drawData(offScreenCanvas, tilePoint, result, function(err){
-        canvas.width = offScreenCanvas.width;
-        canvas.height = offScreenCanvas.height;
-        canvas.style.width = offScreenCanvas.style.width;
-        canvas.style.height = offScreenCanvas.style.height;
-
-        canvas.getContext('2d').drawImage(offScreenCanvas, 0, 0);
-
-        self.tileDrawn(canvas);
+        animationFrame && window.cancelAnimationFrame(animationFrame);
+        animationFrame = window.requestAnimationFrame(function(){
+          canvas.width = offScreenCanvas.width;
+          canvas.height = offScreenCanvas.height;
+          canvas.style.width = offScreenCanvas.style.width;
+          canvas.style.height = offScreenCanvas.style.height;
+          canvas.getContext('2d').drawImage(offScreenCanvas, 0, 0);
+          self.tileDrawn(canvas);
+        });
 
         if (err) {
           throw err;
