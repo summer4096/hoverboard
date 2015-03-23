@@ -203,13 +203,10 @@ module.exports.mvt = module.exports.extend({
 
     if (typeof this.layerExtents == 'undefined') {
       this.layerExtents = {};
-
-      for (var key in tile.layers) {
-        this.layerExtents[key] = tile.layers[key].extent;
-      }
     }
 
     for (var key in tile.layers) {
+      this.layerExtents[key] = tile.layers[key].extent;
       layers[key] = tile.layers[key].toGeoJSON();
     }
 
