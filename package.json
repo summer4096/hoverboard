@@ -1,5 +1,5 @@
 {
-  "name": "hoverboard",
+  "name": "leaflet-hoverboard",
   "version": "1.1.0",
   "description": "Render vector tiles on canvas with leaflet. Supports geojson, topojson, and mapbox vector tiles (protobuf)",
   "main": "src/hoverboard.js",
