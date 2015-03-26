@@ -1,5 +1,7 @@
 var RenderingInterface = require('./renderingInterface');
 
+var topojson = require('topojson');
+
 module.exports = L.TileLayer.Canvas.extend({
   options: {
     async: true
