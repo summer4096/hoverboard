@@ -23,5 +23,7 @@
     "url": "https://github.com/devTristan/hoverboard/issues"
   },
   "homepage": "https://github.com/devTristan/hoverboard",
-  "dependencies": {}
+  "dependencies": {
+    "topojson": "^1.6.18"
+  }
 }
