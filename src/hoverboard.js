@@ -57,15 +57,26 @@ module.exports = L.TileLayer.Canvas.extend({
   _fetchTile: function(tilePoint, callback){
     var cacheKey = this._url+'@@'+JSON.stringify(tilePoint);
 
-    if (typeof this._tileCache[cacheKey] != 'undefined') {
-      callback(null, this._tileCache[cacheKey]);
+    if (typeof this._tileCache[cacheKey] === 'function') {
+      this._tileCache[cacheKey](callback);
+      //callback(null, this._tileCache[cacheKey]);
       return function(){};
     } else {
       var self = this;
       var url = this.getTileUrl(tilePoint);
+      var callbackList = [];
+      this._tileCache[cacheKey] = function(cb){
+        callbackList.push(cb);
+      };
       return this.fetch(url, function(err, result){
         if (!err) {
-          self._tileCache[cacheKey] = self.parse(result);
+          result = self.parse(result);
+          callbackList.forEach(function(cb){
+            cb(null, result);
+          });
+          this._tileCache[cacheKey] = function(cb){
+            cb(null, result);
+          };
         }
         callback(err, self._tileCache[cacheKey]);
       });

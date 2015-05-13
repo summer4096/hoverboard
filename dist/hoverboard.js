@@ -1,7 +1,7 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.Hoverboard = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 !function() {
   var topojson = {
-    version: "1.6.18",
+    version: "1.6.19",
     mesh: function(topology) { return object(topology, meshArcs.apply(this, arguments)); },
     meshArcs: meshArcs,
     merge: function(topology) { return object(topology, mergeArcs.apply(this, arguments)); },
@@ -594,15 +594,26 @@ module.exports = L.TileLayer.Canvas.extend({
   _fetchTile: function(tilePoint, callback){
     var cacheKey = this._url+'@@'+JSON.stringify(tilePoint);
 
-    if (typeof this._tileCache[cacheKey] != 'undefined') {
-      callback(null, this._tileCache[cacheKey]);
+    if (typeof this._tileCache[cacheKey] === 'function') {
+      this._tileCache[cacheKey](callback);
+      //callback(null, this._tileCache[cacheKey]);
       return function(){};
     } else {
       var self = this;
       var url = this.getTileUrl(tilePoint);
+      var callbackList = [];
+      this._tileCache[cacheKey] = function(cb){
+        callbackList.push(cb);
+      };
       return this.fetch(url, function(err, result){
         if (!err) {
-          self._tileCache[cacheKey] = self.parse(result);
+          result = self.parse(result);
+          callbackList.forEach(function(cb){
+            cb(null, result);
+          });
+          this._tileCache[cacheKey] = function(cb){
+            cb(null, result);
+          };
         }
         callback(err, self._tileCache[cacheKey]);
       });
@@ -763,6 +774,7 @@ module.exports.mvt = module.exports.extend({
     });
   }
 });
+
 },{"./renderingInterface":3,"topojson":1}],3:[function(require,module,exports){
 var RenderingInterface = function(layer, name){
   this.layer = layer;
