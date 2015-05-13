@@ -74,11 +74,11 @@ module.exports = L.TileLayer.Canvas.extend({
           callbackList.forEach(function(cb){
             cb(null, result);
           });
-          this._tileCache[cacheKey] = function(cb){
+          self._tileCache[cacheKey] = function(cb){
             cb(null, result);
           };
         }
-        callback(err, self._tileCache[cacheKey]);
+        callback(err, result);
       });
     }
   },
