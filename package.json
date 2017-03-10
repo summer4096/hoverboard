@@ -24,6 +24,6 @@
   },
   "homepage": "https://github.com/summer4096/hoverboard",
   "dependencies": {
-    "topojson": "^1.6.18"
+    "topojson": "^2.2.0"
   }
 }
