@@ -1,5 +1,7 @@
 # Hoverboard
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/summer4096/hoverboard.svg)](https://greenkeeper.io/)
+
 Render vector tiles on canvas with leaflet. 
 
 ![O little town of Grenoble](grenoble.png)
